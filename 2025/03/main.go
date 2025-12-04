@@ -5,6 +5,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 )
@@ -99,6 +101,10 @@ func partB(lines []string) any {
 }
 
 func parseInput(filename string) ([]string, error) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	dir := filepath.Dir(thisFile)
+	filename = filepath.Join(dir, filename)
+
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
