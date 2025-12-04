@@ -53,7 +53,36 @@ func partA(lines []string) any {
 }
 
 func partB(lines []string) any {
-	return "not implemented"
+	count := 0
+	ranges := strings.Split(lines[0], ",")
+	for _, r := range ranges {
+		ids := strings.Split(r, "-")
+		start, err := strconv.Atoi(ids[0])
+		if err != nil {
+			fmt.Println("start invalid id", ids[0])
+			continue
+		}
+
+		end, err := strconv.Atoi(ids[1])
+		if err != nil {
+			fmt.Println("end invalid id", ids[1])
+			continue
+		}
+
+		for i := start; i <= end; i++ {
+			n := strconv.Itoa(i)
+
+			for l := 1; l <= len(n)/2; l++ {
+				chunk := n[:l]
+				if n == strings.Repeat(chunk, len(n)/l) {
+					count += i
+					break
+				}
+			}
+		}
+	}
+
+	return count
 }
 
 func parseInput(filename string) ([]string, error) {
