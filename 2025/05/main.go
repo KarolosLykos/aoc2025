@@ -149,11 +149,11 @@ func mergeIntervals(intervals []Intervals) []Intervals {
 	merged = append(merged, intervals[0])
 
 	for _, curr := range intervals[1:] {
-		last := &merged[len(merged)-1]
+		last := merged[len(merged)-1]
 
 		if curr.Start <= last.End {
 			if curr.End > last.End {
-				last.End = curr.End
+				merged[len(merged)-1].End = curr.End
 			}
 		} else {
 			merged = append(merged, curr)
