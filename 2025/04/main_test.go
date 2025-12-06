@@ -22,7 +22,7 @@ func TestPartA(t *testing.T) {
 	exampleAns := 13
 	ans := partA(input)
 	if ans != exampleAns {
-		t.Errorf("expected: %v, actual: %v", ans, exampleAns)
+		t.Errorf("expected: %v, actual: %v", exampleAns, ans)
 	}
 }
 
@@ -31,7 +31,7 @@ func TestPartB(t *testing.T) {
 	exampleAns := 43
 	ans := partB(input)
 	if ans != exampleAns {
-		t.Errorf("expected: %v, actual: %v", ans, exampleAns)
+		t.Errorf("expected: %v, actual: %v", exampleAns, ans)
 	}
 }
 
