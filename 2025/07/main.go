@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
+	"strings"
 	"time"
 )
 
@@ -24,11 +26,71 @@ func main() {
 }
 
 func partA(lines []string) any {
-	return "not implemented"
+	count := 0
+	beanPositions := make(map[int]bool)
+	for j, l := range lines {
+		for i, c := range l {
+			switch string(c) {
+			case "S":
+				beanPositions[i] = true
+			case "^":
+				if string(lines[j-1][i]) == "|" {
+					count++
+					beanPositions[i-1] = true
+					beanPositions[i+1] = true
+					l = l[:i-1] + string("|") + l[i:]
+					l = l[:i+1] + string("|") + l[i+2:]
+					delete(beanPositions, i)
+				}
+
+			default:
+				if _, ok := beanPositions[i]; ok {
+					l = l[:i] + string("|") + l[i+1:]
+					beanPositions[i] = false
+				}
+			}
+		}
+
+		lines[j] = l
+	}
+
+	return count
 }
 
 func partB(lines []string) any {
-	return "not implemented"
+	startIndx := -1
+	sum := 0
+	var indecies, counts []int
+	for _, line := range lines {
+		temp := strings.Split(line, "")
+		if startIndx == -1 {
+			for range temp {
+				counts = append(counts, 0)
+			}
+			startIndx = slices.Index(temp, "S")
+			indecies = append(indecies, startIndx)
+			counts[startIndx] = 1
+		} else {
+			var tempIndecies []int
+			for _, i := range indecies {
+				if temp[i] == "^" {
+					tempIndecies = append(tempIndecies, i-1)
+					tempIndecies = append(tempIndecies, i+1)
+					counts[i-1] += counts[i]
+					counts[i+1] += counts[i]
+					counts[i] = 0
+				} else {
+					tempIndecies = append(tempIndecies, i)
+				}
+			}
+			indecies = slices.Compact(tempIndecies)
+		}
+	}
+	for _, i := range counts {
+		sum += i
+	}
+
+	return sum
 }
 
 func parseInput(filename string) ([]string, error) {
