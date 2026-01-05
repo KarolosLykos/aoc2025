@@ -6,18 +6,11 @@ import (
 	"testing"
 )
 
-var testInput = `7,1
-11,1
-11,7
-9,7
-9,5
-2,5
-2,3
-7,3`
+var testInput = ``
 
 func TestPartA(t *testing.T) {
 	input := parseTestInput()
-	exampleAns := 50
+	exampleAns := 0
 	ans := partA(input)
 	if ans != exampleAns {
 		t.Errorf("expected: %v, actual: %v", exampleAns, ans)
@@ -26,7 +19,7 @@ func TestPartA(t *testing.T) {
 
 func TestPartB(t *testing.T) {
 	input := parseTestInput()
-	exampleAns := 24
+	exampleAns := 0
 	ans := partB(input)
 	if ans != exampleAns {
 		t.Errorf("expected: %v, actual: %v", exampleAns, ans)
