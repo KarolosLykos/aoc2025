@@ -6,11 +6,13 @@ import (
 	"testing"
 )
 
-var testInput = ``
+var testInput = `[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}`
 
 func TestPartA(t *testing.T) {
 	input := parseTestInput()
-	exampleAns := 0
+	exampleAns := 7
 	ans := partA(input)
 	if ans != exampleAns {
 		t.Errorf("expected: %v, actual: %v", exampleAns, ans)
@@ -19,7 +21,7 @@ func TestPartA(t *testing.T) {
 
 func TestPartB(t *testing.T) {
 	input := parseTestInput()
-	exampleAns := 0
+	exampleAns := 33
 	ans := partB(input)
 	if ans != exampleAns {
 		t.Errorf("expected: %v, actual: %v", exampleAns, ans)

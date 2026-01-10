@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -24,12 +27,321 @@ func main() {
 }
 
 func partA(lines []string) any {
-	return "not implemented"
+	total := 0
+
+	for _, l := range lines {
+		reSquare := regexp.MustCompile(`\[(.*?)\]`)
+		reParens := regexp.MustCompile(`\((.*?)\)`)
+
+		square := reSquare.FindStringSubmatch(l)[1]
+		target := 0
+		for i, c := range square {
+			if c == '#' {
+				target |= 1 << i
+			}
+		}
+
+		// --- Initial state: all lights off ---
+		start := 0
+
+		// --- Button masks ---
+		buttonMasks := []int{}
+		for _, m := range reParens.FindAllStringSubmatch(l, -1) {
+			mask := 0
+			for _, b := range strings.Split(m[1], ",") {
+				i, _ := strconv.Atoi(b)
+				mask |= 1 << i
+			}
+			buttonMasks = append(buttonMasks, mask)
+		}
+
+		// --- BFS to find minimum presses ---
+		type State struct {
+			mask  int
+			steps int
+		}
+
+		queue := []State{{start, 0}}
+		visited := map[int]bool{start: true}
+		minPresses := -1
+
+		for len(queue) > 0 {
+			cur := queue[0]
+			queue = queue[1:]
+
+			if cur.mask == target {
+				minPresses = cur.steps
+				break
+			}
+
+			for _, b := range buttonMasks {
+				next := cur.mask ^ b
+				if !visited[next] {
+					visited[next] = true
+					queue = append(queue, State{next, cur.steps + 1})
+				}
+			}
+		}
+
+		total += minPresses
+	}
+
+	return total
+}
+
+type ButtonCombination struct {
+	Joltages []int
+	Presses  int
+}
+
+type Machine struct {
+	Lights   []int
+	Buttons  [][]int
+	Patterns map[string][]ButtonCombination
+	Joltages []int
+}
+
+func tupleToString(arr []int) string {
+	parts := make([]string, len(arr))
+	for i, v := range arr {
+		parts[i] = strconv.Itoa(v)
+	}
+	return strings.Join(parts, ",")
+}
+
+func slicesEqual(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func solve(joltages []int, patterns map[string][]ButtonCombination, target []int) *int {
+	// Check if we've reached the target
+	if slicesEqual(joltages, target) {
+		zero := 0
+		return &zero
+	}
+
+	// Pull out the least significant bit from the joltages
+	lsb := make([]int, len(joltages))
+	for i, j := range joltages {
+		lsb[i] = j & 1
+	}
+
+	lsbKey := tupleToString(lsb)
+	if combinations, ok := patterns[lsbKey]; ok {
+		var presses []int
+		for _, c := range combinations {
+			// Remove joltages produced by this button
+			newJoltage := subtractAndHalf(joltages, c.Joltages)
+			if isValidJoltage(newJoltage) {
+				if rest := solve(newJoltage, patterns, target); rest != nil {
+					presses = append(presses, c.Presses+2*(*rest))
+				}
+			}
+		}
+		if len(presses) > 0 {
+			minVal := presses[0]
+			for _, p := range presses {
+				if p < minVal {
+					minVal = p
+				}
+			}
+			return &minVal
+		}
+	}
+
+	return nil
+}
+
+func subtractAndHalf(jolt1, jolt2 []int) []int {
+	result := make([]int, len(jolt1))
+	for i := range jolt1 {
+		result[i] = (jolt1[i] - jolt2[i]) / 2
+	}
+	return result
+}
+
+func isValidJoltage(joltages []int) bool {
+	for _, j := range joltages {
+		if j < 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func partB(lines []string) any {
-	return "not implemented"
+	var machines []Machine
+
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		parts := strings.Fields(line)
+		lightSpec := parts[0]
+		joltageSpec := parts[len(parts)-1]
+		buttonSpecs := parts[1 : len(parts)-1]
+
+		// Parse lights
+		lights := make([]int, 0)
+		for _, c := range lightSpec[1 : len(lightSpec)-1] {
+			if c == '#' {
+				lights = append(lights, 1)
+			} else {
+				lights = append(lights, 0)
+			}
+		}
+
+		// Parse buttons
+		buttons := make([][]int, 0)
+		for _, buttonSpec := range buttonSpecs {
+			buttonStr := buttonSpec[1 : len(buttonSpec)-1]
+			buttonParts := strings.Split(buttonStr, ",")
+			button := make([]int, 0)
+			for _, part := range buttonParts {
+				n, _ := strconv.Atoi(part)
+				button = append(button, n)
+			}
+			buttons = append(buttons, button)
+		}
+
+		// Build patterns
+		patterns := make(map[string][]ButtonCombination)
+		for n := 0; n < (1 << len(buttons)); n++ {
+			lightResult := make([]int, len(lights))
+			joltageMultiplier := make([]int, len(lights))
+			presses := 0
+
+			for buttonIndex := 0; buttonIndex < len(buttons); buttonIndex++ {
+				if (n & (1 << buttonIndex)) != 0 {
+					btn := buttons[buttonIndex]
+					for _, light := range btn {
+						lightResult[light] ^= 1
+						joltageMultiplier[light]++
+					}
+					presses++
+				}
+			}
+
+			key := tupleToString(lightResult)
+			patterns[key] = append(patterns[key], ButtonCombination{
+				Joltages: joltageMultiplier,
+				Presses:  presses,
+			})
+		}
+
+		// Parse joltages
+		joltageStr := joltageSpec[1 : len(joltageSpec)-1]
+		joltageParts := strings.Split(joltageStr, ",")
+		joltages := make([]int, 0)
+		for _, part := range joltageParts {
+			n, _ := strconv.Atoi(part)
+			joltages = append(joltages, n)
+		}
+
+		machines = append(machines, Machine{
+			Lights:   lights,
+			Buttons:  buttons,
+			Patterns: patterns,
+			Joltages: joltages,
+		})
+	}
+
+	total := 0
+	for _, m := range machines {
+		target := make([]int, len(m.Joltages))
+		if solution := solve(m.Joltages, m.Patterns, target); solution != nil {
+			total += *solution
+		}
+	}
+	return total
 }
+
+func solveOne(buttons [][]int, target []int) int {
+	n := len(target)
+	// base
+	allZero := true
+	for _, v := range target {
+		if v != 0 {
+			allZero = false
+			break
+		}
+	}
+	if allZero {
+		return 0
+	}
+
+	// find parity target
+	parity := make([]int, n)
+	for i := range target {
+		parity[i] = target[i] & 1
+	}
+
+	// find a combination of buttons for parity
+	// brute force all subsets of buttons (press each 0/1)
+	bestPress := -1
+	var bestPick []int
+	B := len(buttons)
+outer:
+	for mask := 0; mask < (1 << uint(B)); mask++ {
+		sum := make([]int, n)
+		presses := 0
+		for b := 0; b < B; b++ {
+			if (mask>>uint(b))&1 == 1 {
+				presses++
+				for _, idx := range buttons[b] {
+					sum[idx] ^= 1
+				}
+			}
+		}
+		// match parity?
+		ok := true
+		for i := 0; i < n; i++ {
+			if sum[i] != parity[i] {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			bestPress = presses
+			bestPick = make([]int, B)
+			for b := 0; b < B; b++ {
+				if (mask>>uint(b))&1 == 1 {
+					bestPick[b] = 1
+				}
+			}
+			break outer
+		}
+	}
+
+	if bestPress < 0 {
+		return 0
+	}
+
+	// subtract parity part
+	nextTarget := make([]int, n)
+	for i := 0; i < n; i++ {
+		nextTarget[i] = target[i] - parity[i]
+	}
+
+	// divide by 2
+	for i := range nextTarget {
+		nextTarget[i] /= 2
+	}
+
+	// recursively solve smaller problem
+	return bestPress + 2*solveOne(buttons, nextTarget)
+}
+
+
 
 func parseInput(filename string) ([]string, error) {
 	_, thisFile, _, _ := runtime.Caller(0)
