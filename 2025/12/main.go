@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -23,7 +25,87 @@ func main() {
 	fmt.Println("Finished: ", time.Since(start))
 }
 
+type Summary struct {
+	Presents []Presents
+	Regions  []Regions
+}
+
+type Presents struct {
+	ID    int
+	Shape [3][3]string
+}
+
+type Regions struct {
+	Width    int
+	Height   int
+	Quantity map[int]int
+}
+
 func partA(lines []string) any {
+	summary := Summary{
+		Presents: make([]Presents, 0),
+		Regions:  make([]Regions, 0),
+	}
+
+	for i := 0; i < len(lines); {
+		l := lines[i]
+
+		if l == "" {
+			i++
+			continue
+		}
+
+		if strings.HasSuffix(l, ":") && !strings.Contains(l, "x") {
+			present := Presents{}
+			idStr := strings.TrimSuffix(l, ":")
+			id, _ := strconv.Atoi(idStr)
+			present.ID = id
+			for j := 0; j < 3; j++ {
+				i++
+				p := strings.Split(lines[i], "")
+				present.Shape[j][0] = p[0]
+				present.Shape[j][1] = p[1]
+				present.Shape[j][2] = p[2]
+			}
+
+			summary.Presents = append(summary.Presents, present)
+
+			i++
+			continue
+		}
+
+		if strings.Contains(l, "x") && strings.Contains(l, ":") {
+			reg := Regions{}
+			parts := strings.Split(l, ":")
+			dim := parts[0]
+			nums := strings.Fields(parts[1])
+
+			wh := strings.Split(dim, "x")
+			w, _ := strconv.Atoi(wh[0])
+			h, _ := strconv.Atoi(wh[1])
+			reg.Width = w
+			reg.Height = h
+
+			region := Regions{
+				Width:  w,
+				Height: h,
+			}
+
+			region.Quantity = make(map[int]int)
+			for j := 0; j < len(nums); j++ {
+				n, _ := strconv.Atoi(nums[j])
+				region.Quantity[j] = n
+			}
+
+			summary.Regions = append(summary.Regions, region)
+
+			i++
+			continue
+		}
+
+		panic(l)
+	}
+
 	return "not implemented"
 }
 
