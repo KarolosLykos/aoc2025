@@ -6,11 +6,43 @@ import (
 	"testing"
 )
 
-var testInput = ``
+var testInput = `0:
+###
+##.
+##.
+
+1:
+###
+##.
+.##
+
+2:
+.##
+###
+##.
+
+3:
+##.
+###
+##.
+
+4:
+###
+#..
+###
+
+5:
+###
+.#.
+###
+
+4x4: 0 0 0 0 2 0
+12x5: 1 0 1 0 2 2
+12x5: 1 0 1 0 3 2`
 
 func TestPartA(t *testing.T) {
 	input := parseTestInput()
-	exampleAns := 0
+	exampleAns := 2
 	ans := partA(input)
 	if ans != exampleAns {
 		t.Errorf("expected: %v, actual: %v", exampleAns, ans)
