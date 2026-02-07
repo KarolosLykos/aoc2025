@@ -65,6 +65,7 @@ func partA(lines []string) any {
 
 	return results
 }
+
 type problem struct {
 	op   string
 	nums []int

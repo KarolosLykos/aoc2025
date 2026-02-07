@@ -9,7 +9,7 @@ import (
 var testInput = `123 328  51 64 
  45 64  387 23 
   6 98  215 314
-*   +   *   + `
+*   +   *   +  `
 
 func TestPartA(t *testing.T) {
 	input := parseTestInput()
