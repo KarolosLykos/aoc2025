@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -41,6 +42,161 @@ type Regions struct {
 	Quantity map[int]int
 }
 
+type Point struct {
+	X, Y int
+}
+
+type ShapeVariant struct {
+	Cells         []Point
+	Width, Height int
+}
+
+func rotate(shape [][]rune) [][]rune {
+	n := len(shape)
+	out := make([][]rune, n)
+	for i := range out {
+		out[i] = make([]rune, n)
+	}
+	for y := 0; y < n; y++ {
+		for x := 0; x < n; x++ {
+			out[x][n-1-y] = shape[y][x]
+		}
+	}
+	return out
+}
+
+func normalize(shape [][]rune) ShapeVariant {
+	minX, minY := 10, 10
+	maxX, maxY := 0, 0
+	var cells []Point
+
+	for y := 0; y < 3; y++ {
+		for x := 0; x < 3; x++ {
+			if shape[y][x] == '#' {
+				if x < minX {
+					minX = x
+				}
+				if y < minY {
+					minY = y
+				}
+				if x > maxX {
+					maxX = x
+				}
+				if y > maxY {
+					maxY = y
+				}
+				cells = append(cells, Point{x, y})
+			}
+		}
+	}
+
+	for i := range cells {
+		cells[i].X -= minX
+		cells[i].Y -= minY
+	}
+
+	return ShapeVariant{
+		Cells:  cells,
+		Width:  maxX - minX + 1,
+		Height: maxY - minY + 1,
+	}
+}
+
+func shapeVariants(p Presents) []ShapeVariant {
+	base := make([][]rune, 3)
+	for i := 0; i < 3; i++ {
+		base[i] = []rune{
+			rune(p.Shape[i][0][0]),
+			rune(p.Shape[i][1][0]),
+			rune(p.Shape[i][2][0]),
+		}
+	}
+
+	seen := map[string]bool{}
+	var variants []ShapeVariant
+
+	add := func(s [][]rune) {
+		v := normalize(s)
+		key := fmt.Sprintf("%v", v.Cells)
+		if !seen[key] {
+			seen[key] = true
+			variants = append(variants, v)
+		}
+	}
+
+	cur := base
+	for i := 0; i < 4; i++ {
+		add(cur)
+		add(flip(cur))
+		cur = rotate(cur)
+	}
+
+	return variants
+}
+
+func canFit(region Regions, presents []PresentInstance) bool {
+	grid := make([][]bool, region.Height)
+	for i := range grid {
+		grid[i] = make([]bool, region.Width)
+	}
+
+	var dfs func(int) bool
+	dfs = func(idx int) bool {
+		if idx == len(presents) {
+			return true
+		}
+
+		for _, shape := range presents[idx].Variants {
+			for y := 0; y <= region.Height-shape.Height; y++ {
+				for x := 0; x <= region.Width-shape.Width; x++ {
+
+					ok := true
+					for _, c := range shape.Cells {
+						if grid[y+c.Y][x+c.X] {
+							ok = false
+							break
+						}
+					}
+					if !ok {
+						continue
+					}
+
+					for _, c := range shape.Cells {
+						grid[y+c.Y][x+c.X] = true
+					}
+
+					if dfs(idx + 1) {
+						return true
+					}
+
+					for _, c := range shape.Cells {
+						grid[y+c.Y][x+c.X] = false
+					}
+				}
+			}
+		}
+		return false
+	}
+
+	return dfs(0)
+}
+
+func flip(shape [][]rune) [][]rune {
+	n := len(shape)
+	out := make([][]rune, n)
+	for i := range out {
+		out[i] = make([]rune, n)
+		for j := 0; j < n; j++ {
+			out[i][j] = shape[i][n-1-j]
+		}
+	}
+	return out
+}
+
+type PresentInstance struct {
+	Variants []ShapeVariant
+}
+
 func partA(lines []string) any {
 	summary := Summary{
 		Presents: make([]Presents, 0),
@@ -67,15 +223,12 @@ func partA(lines []string) any {
 				present.Shape[j][1] = p[1]
 				present.Shape[j][2] = p[2]
 			}
-
 			summary.Presents = append(summary.Presents, present)
-
 			i++
 			continue
 		}
 
 		if strings.Contains(l, "x") && strings.Contains(l, ":") {
-			reg := Regions{}
 			parts := strings.Split(l, ":")
 			dim := parts[0]
 			nums := strings.Fields(parts[1])
@@ -83,30 +236,60 @@ func partA(lines []string) any {
 			wh := strings.Split(dim, "x")
 			w, _ := strconv.Atoi(wh[0])
 			h, _ := strconv.Atoi(wh[1])
-			reg.Width = w
-			reg.Height = h
 
 			region := Regions{
-				Width:  w,
-				Height: h,
+				Width:    w,
+				Height:   h,
+				Quantity: make(map[int]int),
 			}
 
-			region.Quantity = make(map[int]int)
 			for j := 0; j < len(nums); j++ {
 				n, _ := strconv.Atoi(nums[j])
 				region.Quantity[j] = n
 			}
 
 			summary.Regions = append(summary.Regions, region)
-
 			i++
 			continue
 		}
-
-		panic(l)
 	}
 
-	return "not implemented"
+	presentVariants := map[int][]ShapeVariant{}
+	for _, p := range summary.Presents {
+		presentVariants[p.ID] = shapeVariants(p)
+	}
+
+	count := 0
+
+	for _, region := range summary.Regions {
+		var presents []PresentInstance
+		totalArea := 0
+
+		for id, qty := range region.Quantity {
+			shapeArea := len(presentVariants[id][0].Cells)
+			for i := 0; i < qty; i++ {
+				presents = append(presents, PresentInstance{
+					Variants: presentVariants[id],
+				})
+				totalArea += shapeArea
+			}
+		}
+
+		if totalArea > region.Width*region.Height {
+			continue
+		}
+
+		sort.Slice(presents, func(i, j int) bool {
+			return len(presents[i].Variants[0].Cells) >
+				len(presents[j].Variants[0].Cells)
+		})
+
+		if canFit(region, presents) {
+			count++
+		}
+	}
+
+	return count
 }
 
 func partB(lines []string) any {
