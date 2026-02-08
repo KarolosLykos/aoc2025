@@ -51,7 +51,7 @@ func TestPartA(t *testing.T) {
 
 func TestPartB(t *testing.T) {
 	input := parseTestInput()
-	exampleAns := 0
+	exampleAns := "finished"
 	ans := partB(input)
 	if ans != exampleAns {
 		t.Errorf("expected: %v, actual: %v", exampleAns, ans)

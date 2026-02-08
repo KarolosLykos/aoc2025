@@ -293,7 +293,7 @@ func partA(lines []string) any {
 }
 
 func partB(lines []string) any {
-	return "not implemented"
+	return "finished"
 }
 
 func parseInput(filename string) ([]string, error) {
