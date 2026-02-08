@@ -1,3 +1,3 @@
-module aoc2025
+module aoc
 
 go 1.24.1
